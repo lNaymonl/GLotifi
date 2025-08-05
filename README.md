@@ -19,11 +19,11 @@ GITLAB_TOKEN=<my-private-auth-token>
 TODO_FILE_PATH=/some/path/to/todo.json # Optional
 EXEC_EVERY_SEC=30
 ```
-2. Navigate to the repo Folder.
+3. Navigate to the repo Folder.
 ```bash
 cd /path/where/you/cloned/the/repo
 ```
-3. Build the application.
+4. Build the application.
 ```bash
 dotnet publish -c Release -o build
 ```
