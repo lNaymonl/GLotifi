@@ -56,7 +56,6 @@ public static class Program
                 {
                     new ToastContentBuilder()
                         .AddToastActivationInfo("action=viewDetails", ToastActivationType.Foreground)
-                        .AddAppLogoOverride(new Uri("file:///C:/Users/Elmo/Programming/GLotifi/gitlab.png"), alternateText: "Kein Logo")
                         .AddText(unannounced[i].Target.Title)
                         .AddText(unannounced[i].Target.Description)
                         .Show();
