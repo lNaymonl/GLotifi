@@ -6,7 +6,7 @@ using Microsoft.Toolkit.Uwp.Notifications;
 
 namespace GLotifi
 {
-    static class Program
+    internal class Program
     {
         private static readonly string DEFAULT_TODO_DIRECTORY_PATH = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "GLotifi");
         private static string TODO_FILE_PATH = Path.Join(DEFAULT_TODO_DIRECTORY_PATH, "alreadyAnnounced.json");
@@ -42,16 +42,6 @@ namespace GLotifi
             notifyIcon.ContextMenuStrip = contextMenu;
 
             Task.Run(() => StartBackgroundLoop());
-
-            new ToastContentBuilder()
-                .AddToastActivationInfo("action=viewDetails", ToastActivationType.Foreground)
-                .AddAppLogoOverride(new Uri(Path.Join("file:///", AppDomain.CurrentDomain.BaseDirectory, "GLotifi.png")))
-                .AddText("GLotifi")
-                .AddText("GLotifi got successfully started in the background!\n\nStart observing your todo list!")
-                .SetProtocolActivation(new Uri("https://github.com/lNaymonl/GLotifi"))
-                .SetToastDuration(ToastDuration.Short)
-                .Show();
-
             Application.Run(); // Starting application
         }
 
@@ -69,16 +59,31 @@ namespace GLotifi
                 GITLAB_TOKEN = GetEnvVar("GITLAB_TOKEN");
                 EXEC_EVERY_SEC = int.Parse(GetEnvVar("EXEC_EVERY_SEC"));
                 EXEC_EVERY_SEC_TSPAN = TimeSpan.FromSeconds(EXEC_EVERY_SEC);
-              
+
                 if (!File.Exists(TODO_FILE_PATH))
                 {
                     File.Create(TODO_FILE_PATH).Close();
                     File.WriteAllText(TODO_FILE_PATH, "[]");
                 }
 
+                new ToastContentBuilder()
+                    .AddToastActivationInfo("action=viewDetails", ToastActivationType.Foreground)
+                    .AddAppLogoOverride(new Uri(Path.Join("file:///", AppDomain.CurrentDomain.BaseDirectory, "GLotifi.png")))
+                    .AddText("GLotifi")
+                    .AddText("GLotifi got successfully started in the background!\n\nStart observing your todo list!")
+                    .SetProtocolActivation(new Uri("https://github.com/lNaymonl/GLotifi"))
+                    .SetToastDuration(ToastDuration.Short)
+                    .Show();
+
                 while (true)
                 {
-                    if (DateTime.Now - LastExec >= EXEC_EVERY_SEC_TSPAN)
+                    if (DateTime.Now - LastExec < EXEC_EVERY_SEC_TSPAN)
+                    {
+                        Task.Delay(1000).Wait();
+                        continue;
+                    }
+
+                    try
                     {
                         var task = GetUnanouncedTodos();
                         task.Wait();
@@ -98,13 +103,28 @@ namespace GLotifi
 
                         LastExec = DateTime.Now;
                     }
+                    catch (Exception ex)
+                    {
+                        new ToastContentBuilder()
+                            .AddToastActivationInfo("action=viewDetails", ToastActivationType.Foreground)
+                            .AddAppLogoOverride(new Uri(Path.Join("file:///", AppDomain.CurrentDomain.BaseDirectory, "GLotifi.png")))
+                            .AddText("An error occurred while running GLotifi: " + ex.Message)
+                            .SetToastDuration(ToastDuration.Short)
+                            .Show();
+                        Environment.Exit(1);
+                    }
 
                     Task.Delay(1000).Wait();
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Fehler: {ex.Message}", "GLotifi Fehler", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                new ToastContentBuilder()
+                    .AddToastActivationInfo("action=viewDetails", ToastActivationType.Foreground)
+                    .AddAppLogoOverride(new Uri(Path.Join("file:///", AppDomain.CurrentDomain.BaseDirectory, "GLotifi.png")))
+                    .AddText("An error occurred while starting GLotifi: " + ex.Message)
+                    .SetToastDuration(ToastDuration.Short)
+                    .Show();
                 Environment.Exit(1);
             }
         }
