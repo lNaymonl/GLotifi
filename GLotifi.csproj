@@ -18,13 +18,11 @@
   </ItemGroup>
 
   <Target Name="CopyCustomContent" AfterTargets="AfterBuild">
-    <Copy SourceFiles=".env" DestinationFolder="$(OutDir)" />
-    <Copy SourceFiles="gitlab.png" DestinationFolder="$(OutDir)" />
     <Copy SourceFiles="GLotifi.ico" DestinationFolder="$(OutDir)" />
+    <Copy SourceFiles="GLotifi.webp" DestinationFolder="$(OutDir)" />
   </Target>
   <Target Name="CopyCustomContentOnPublish" AfterTargets="Publish">
-    <Copy SourceFiles=".env" DestinationFolder="$(PublishDir)" />
-    <Copy SourceFiles="gitlab.png" DestinationFolder="$(PublishDir)" />
     <Copy SourceFiles="GLotifi.ico" DestinationFolder="$(PublishDir)" />
+    <Copy SourceFiles="GLotifi.webp" DestinationFolder="$(PublishDir)" />
   </Target>
 </Project>
