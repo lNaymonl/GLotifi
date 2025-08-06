@@ -47,9 +47,7 @@ namespace GLotifi
                 .AddToastActivationInfo("action=viewDetails", ToastActivationType.Foreground)
                 .AddAppLogoOverride(new Uri(Path.Join("file:///", AppDomain.CurrentDomain.BaseDirectory, "GLotifi.png")))
                 .AddText("GLotifi")
-                .AddText("Glotifi got successfully started in the background!")
-                .AddText(" ")
-                .AddText("Started observing todo list!")
+                .AddText("GLotifi got successfully started in the background!\n\nStart observing your todo list!")
                 .SetProtocolActivation(new Uri("https://github.com/lNaymonl/GLotifi"))
                 .SetToastDuration(ToastDuration.Short)
                 .Show();
