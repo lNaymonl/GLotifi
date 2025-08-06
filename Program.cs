@@ -8,7 +8,8 @@ namespace GLotifi;
 
 public static class Program
 {
-    private static string TODO_FILE_PATH = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "GLotify\\alreadyAnnounced.json");
+    private static readonly string DEFAULT_TODO_DIRECTORY_PATH = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "GLotifi");
+    private static string TODO_FILE_PATH = Path.Join(DEFAULT_TODO_DIRECTORY_PATH, "alreadyAnnounced.json");
     private static string GITLAB_URL = "";
     private static string GITLAB_TOKEN = "";
     private static int EXEC_EVERY_SEC = 30;
@@ -27,6 +28,7 @@ public static class Program
 
         var envTodoFilePath = Environment.GetEnvironmentVariable("TODO_FILE_PATH");
         if (envTodoFilePath != null) TODO_FILE_PATH = envTodoFilePath;
+        else Directory.CreateDirectory(DEFAULT_TODO_DIRECTORY_PATH);
 
         GITLAB_URL = GetEnvVar("GITLAB_URL");
         GITLAB_TOKEN = GetEnvVar("GITLAB_TOKEN");
