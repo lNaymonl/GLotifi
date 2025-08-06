@@ -59,6 +59,8 @@ public static class Program
                         .AddAppLogoOverride(new Uri(Path.Join("file:///", AppDomain.CurrentDomain.BaseDirectory, "GLotifi.webp")))
                         .AddText(unannounced[i].Target.Title)
                         .AddText(unannounced[i].Target.Description)
+                        .SetProtocolActivation(new Uri(unannounced[i].TargetUrl))
+                        .SetToastDuration(ToastDuration.Long)
                         .Show();
                 }
 
