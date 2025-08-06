@@ -20,7 +20,7 @@ public static class Program
     }
 
     private static DateTime LastExec = DateTime.Now;
-    private static TimeSpan ExecEverySec = TimeSpan.Zero;
+    private static TimeSpan EXEC_EVERY_SEC_TSPAN = TimeSpan.Zero;
 
     public static void Main()
     {
@@ -33,7 +33,7 @@ public static class Program
         GITLAB_URL = GetEnvVar("GITLAB_URL");
         GITLAB_TOKEN = GetEnvVar("GITLAB_TOKEN");
         EXEC_EVERY_SEC = int.Parse(GetEnvVar("EXEC_EVERY_SEC"));
-        ExecEverySec = TimeSpan.FromSeconds(EXEC_EVERY_SEC);
+        EXEC_EVERY_SEC_TSPAN = TimeSpan.FromSeconds(EXEC_EVERY_SEC);
 
         if (!File.Exists(TODO_FILE_PATH))
         {
@@ -47,12 +47,11 @@ public static class Program
             while (true)
             {
                 Task.Delay(100).Wait();
-                var abc = DateTime.Now - LastExec;
-                if (DateTime.Now - LastExec < ExecEverySec) continue;
+                if (DateTime.Now - LastExec < EXEC_EVERY_SEC_TSPAN) continue;
 
                 var task = GetUnanouncedTodos();
-
                 task.Wait();
+
                 var unannounced = task.Result.ToList();
 
                 for (int i = 0; i < unannounced.Count; ++i)
