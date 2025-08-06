@@ -14,7 +14,7 @@ namespace GLotifi
         private static string GITLAB_TOKEN = "";
         private static int EXEC_EVERY_SEC = 30;
         private static DateTime LastExec = DateTime.Now;
-        private static TimeSpan ExecEverySec = TimeSpan.Zero;
+        EXEC_EVERY_SEC_TSPAN = TimeSpan.FromSeconds(EXEC_EVERY_SEC);
 
         [STAThread]
         static void Main()
@@ -68,8 +68,8 @@ namespace GLotifi
                 GITLAB_URL = GetEnvVar("GITLAB_URL");
                 GITLAB_TOKEN = GetEnvVar("GITLAB_TOKEN");
                 EXEC_EVERY_SEC = int.Parse(GetEnvVar("EXEC_EVERY_SEC"));
-                ExecEverySec = TimeSpan.FromSeconds(EXEC_EVERY_SEC);
-
+                EXEC_EVERY_SEC_TSPAN = TimeSpan.FromSeconds(EXEC_EVERY_SEC);
+              
                 if (!File.Exists(TODO_FILE_PATH))
                 {
                     File.Create(TODO_FILE_PATH).Close();
@@ -78,7 +78,7 @@ namespace GLotifi
 
                 while (true)
                 {
-                    if (DateTime.Now - LastExec >= ExecEverySec)
+                    if (DateTime.Now - LastExec >= EXEC_EVERY_SEC_TSPAN)
                     {
                         var task = GetUnanouncedTodos();
                         task.Wait();
