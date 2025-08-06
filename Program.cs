@@ -43,6 +43,7 @@ public static class Program
 
         var notifyTask = Task.Run(() =>
         {
+            Console.WriteLine($"[INFO]: Started Todo observation. Checking every {EXEC_EVERY_SEC}s.");
             while (true)
             {
                 Task.Delay(100).Wait();
