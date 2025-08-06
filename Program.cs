@@ -6,7 +6,7 @@ using Microsoft.Toolkit.Uwp.Notifications;
 
 namespace GLotifi
 {
-    internal class Program
+    internal static class Program
     {
         private static readonly string DEFAULT_TODO_DIRECTORY_PATH = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "GLotifi");
         private static string TODO_FILE_PATH = Path.Join(DEFAULT_TODO_DIRECTORY_PATH, "alreadyAnnounced.json");
