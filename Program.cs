@@ -4,98 +4,156 @@ using DotNetEnv;
 using GLotifi.Models;
 using Microsoft.Toolkit.Uwp.Notifications;
 
-namespace GLotifi;
-
-public static class Program
+namespace GLotifi
 {
-    private static readonly string DEFAULT_TODO_DIRECTORY_PATH = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "GLotifi");
-    private static string TODO_FILE_PATH = Path.Join(DEFAULT_TODO_DIRECTORY_PATH, "alreadyAnnounced.json");
-    private static string GITLAB_URL = "";
-    private static string GITLAB_TOKEN = "";
-    private static int EXEC_EVERY_SEC = 30;
-
-    public static string GetEnvVar(string name)
+    internal static class Program
     {
-        return Environment.GetEnvironmentVariable(name) ?? throw new Exception($"{name} variable must be present in .env file");
-    }
+        private static readonly string DEFAULT_TODO_DIRECTORY_PATH = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "GLotifi");
+        private static string TODO_FILE_PATH = Path.Join(DEFAULT_TODO_DIRECTORY_PATH, "alreadyAnnounced.json");
+        private static string GITLAB_URL = "";
+        private static string GITLAB_TOKEN = "";
+        private static int EXEC_EVERY_SEC = 30;
+        private static DateTime LastExec = DateTime.Now;
+        private static TimeSpan EXEC_EVERY_SEC_TSPAN = TimeSpan.FromSeconds(EXEC_EVERY_SEC);
 
-    private static DateTime LastExec = DateTime.Now;
-    private static TimeSpan EXEC_EVERY_SEC_TSPAN = TimeSpan.Zero;
-
-    public static void Main()
-    {
-        Env.Load(Path.Join(AppDomain.CurrentDomain.BaseDirectory, ".env"));
-
-        var envTodoFilePath = Environment.GetEnvironmentVariable("TODO_FILE_PATH");
-        if (envTodoFilePath != null) TODO_FILE_PATH = envTodoFilePath;
-        else Directory.CreateDirectory(DEFAULT_TODO_DIRECTORY_PATH);
-
-        GITLAB_URL = GetEnvVar("GITLAB_URL");
-        GITLAB_TOKEN = GetEnvVar("GITLAB_TOKEN");
-        EXEC_EVERY_SEC = int.Parse(GetEnvVar("EXEC_EVERY_SEC"));
-        EXEC_EVERY_SEC_TSPAN = TimeSpan.FromSeconds(EXEC_EVERY_SEC);
-
-        if (!File.Exists(TODO_FILE_PATH))
+        [STAThread]
+        static void Main()
         {
-            File.Create(TODO_FILE_PATH).Close();
-            File.WriteAllText(TODO_FILE_PATH, "[]");
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+
+            var notifyIcon = new NotifyIcon
+            {
+                Icon = new Icon(Path.Join(AppDomain.CurrentDomain.BaseDirectory, "GLotifi.ico")),
+                Visible = true,
+                Text = "GLotifi"
+            };
+
+            var contextMenu = new ContextMenuStrip();
+            var exitItem = new ToolStripMenuItem("Exit GLotifi");
+            exitItem.Click += (s, e) =>
+            {
+                notifyIcon.Visible = false;
+                Application.Exit();
+                Environment.Exit(0);
+            };
+
+            contextMenu.Items.Add(exitItem);
+            notifyIcon.ContextMenuStrip = contextMenu;
+
+            Task.Run(() => StartBackgroundLoop());
+            Application.Run(); // Starting application
         }
 
-        var notifyTask = Task.Run(() =>
+        static void StartBackgroundLoop()
         {
-            Console.WriteLine($"[INFO]: Started Todo observation. Checking every {EXEC_EVERY_SEC}s.");
-            while (true)
+            try
             {
-                Task.Delay(100).Wait();
-                if (DateTime.Now - LastExec < EXEC_EVERY_SEC_TSPAN) continue;
+                Env.Load(Path.Join(AppDomain.CurrentDomain.BaseDirectory, ".env"));
 
-                var task = GetUnanouncedTodos();
-                task.Wait();
+                var envTodoFilePath = Environment.GetEnvironmentVariable("TODO_FILE_PATH");
+                if (envTodoFilePath != null) TODO_FILE_PATH = envTodoFilePath;
+                else Directory.CreateDirectory(DEFAULT_TODO_DIRECTORY_PATH);
 
-                var unannounced = task.Result.ToList();
+                GITLAB_URL = GetEnvVar("GITLAB_URL");
+                GITLAB_TOKEN = GetEnvVar("GITLAB_TOKEN");
+                EXEC_EVERY_SEC = int.Parse(GetEnvVar("EXEC_EVERY_SEC"));
+                EXEC_EVERY_SEC_TSPAN = TimeSpan.FromSeconds(EXEC_EVERY_SEC);
 
-                for (int i = 0; i < unannounced.Count; ++i)
+                if (!File.Exists(TODO_FILE_PATH))
                 {
-                    new ToastContentBuilder()
-                        .AddToastActivationInfo("action=viewDetails", ToastActivationType.Foreground)
-                        .AddAppLogoOverride(new Uri(Path.Join("file:///", AppDomain.CurrentDomain.BaseDirectory, "GLotifi.png")))
-                        .AddText(unannounced[i].Target.Title)
-                        .AddText(unannounced[i].Target.Description)
-                        .SetProtocolActivation(new Uri(unannounced[i].TargetUrl))
-                        .SetToastDuration(ToastDuration.Long)
-                        .Show();
+                    File.Create(TODO_FILE_PATH).Close();
+                    File.WriteAllText(TODO_FILE_PATH, "[]");
                 }
 
-                LastExec = DateTime.Now;
+                new ToastContentBuilder()
+                    .AddToastActivationInfo("action=viewDetails", ToastActivationType.Foreground)
+                    .AddAppLogoOverride(new Uri(Path.Join("file:///", AppDomain.CurrentDomain.BaseDirectory, "GLotifi.png")))
+                    .AddText("GLotifi")
+                    .AddText("GLotifi got successfully started in the background!\n\nStart observing your todo list!")
+                    .SetProtocolActivation(new Uri("https://github.com/lNaymonl/GLotifi"))
+                    .SetToastDuration(ToastDuration.Short)
+                    .Show();
+
+                while (true)
+                {
+                    if (DateTime.Now - LastExec < EXEC_EVERY_SEC_TSPAN)
+                    {
+                        Task.Delay(1000).Wait();
+                        continue;
+                    }
+
+                    try
+                    {
+                        var task = GetUnanouncedTodos();
+                        task.Wait();
+
+                        var unannounced = task.Result.ToList();
+                        foreach (var todo in unannounced)
+                        {
+                            new ToastContentBuilder()
+                                .AddToastActivationInfo("action=viewDetails", ToastActivationType.Foreground)
+                                .AddAppLogoOverride(new Uri(Path.Join("file:///", AppDomain.CurrentDomain.BaseDirectory, "GLotifi.png")))
+                                .AddText(todo.Target.Title)
+                                .AddText(todo.Target.Description)
+                                .SetProtocolActivation(new Uri(todo.TargetUrl))
+                                .SetToastDuration(ToastDuration.Long)
+                                .Show();
+                        }
+
+                        LastExec = DateTime.Now;
+                    }
+                    catch (Exception ex)
+                    {
+                        new ToastContentBuilder()
+                            .AddToastActivationInfo("action=viewDetails", ToastActivationType.Foreground)
+                            .AddAppLogoOverride(new Uri(Path.Join("file:///", AppDomain.CurrentDomain.BaseDirectory, "GLotifi.png")))
+                            .AddText("An error occurred while running GLotifi: " + ex.Message)
+                            .SetToastDuration(ToastDuration.Short)
+                            .Show();
+                        Environment.Exit(1);
+                    }
+
+                    Task.Delay(1000).Wait();
+                }
             }
-        });
-        notifyTask.Wait();
-    }
+            catch (Exception ex)
+            {
+                new ToastContentBuilder()
+                    .AddToastActivationInfo("action=viewDetails", ToastActivationType.Foreground)
+                    .AddAppLogoOverride(new Uri(Path.Join("file:///", AppDomain.CurrentDomain.BaseDirectory, "GLotifi.png")))
+                    .AddText("An error occurred while starting GLotifi: " + ex.Message)
+                    .SetToastDuration(ToastDuration.Short)
+                    .Show();
+                Environment.Exit(1);
+            }
+        }
 
-    public static async Task<IEnumerable<Todo>> GetTodos()
-    {
-        using var httpClient = new HttpClient();
-        httpClient.DefaultRequestHeaders.Add("PRIVATE-TOKEN", GITLAB_TOKEN);
-        var res = await httpClient.GetAsync($"{GITLAB_URL}/api/v4/todos");
+        public static string GetEnvVar(string name) =>
+            Environment.GetEnvironmentVariable(name) ?? throw new Exception($"{name} variable must be present in .env file");
 
-        var content = await res.Content.ReadAsByteArrayAsync();
-        var contentString = Encoding.UTF8.GetString(content);
-        var todos = JsonSerializer.Deserialize<Todo[]>(contentString) ?? throw new NullReferenceException("Could not parse todos");
+        public static async Task<IEnumerable<Todo>> GetTodos()
+        {
+            using var httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.Add("PRIVATE-TOKEN", GITLAB_TOKEN);
+            var res = await httpClient.GetAsync($"{GITLAB_URL}/api/v4/todos");
 
-        return todos;
-    }
+            var content = await res.Content.ReadAsByteArrayAsync();
+            var contentString = Encoding.UTF8.GetString(content);
+            var todos = JsonSerializer.Deserialize<Todo[]>(contentString) ?? throw new NullReferenceException("Could not parse todos");
 
-    public static async Task<IEnumerable<Todo>> GetUnanouncedTodos()
-    {
-        string alreadyAnnouncedTodosStr = File.ReadAllText(TODO_FILE_PATH);
-        List<int> alreadyAnnouncedTodos = [.. JsonSerializer.Deserialize<int[]>(alreadyAnnouncedTodosStr) ?? throw new NullReferenceException("Given file conent could not be parsed into int array!")];
+            return todos;
+        }
 
-        var todos = await GetTodos();
+        public static async Task<IEnumerable<Todo>> GetUnanouncedTodos()
+        {
+            string alreadyAnnouncedTodosStr = File.ReadAllText(TODO_FILE_PATH);
+            List<int> alreadyAnnouncedTodos = [.. JsonSerializer.Deserialize<int[]>(alreadyAnnouncedTodosStr) ?? throw new NullReferenceException("Given file content could not be parsed into int array!")];
 
-        File.WriteAllText(TODO_FILE_PATH, JsonSerializer.Serialize(todos.Select(todo => todo.Id)));
+            var todos = await GetTodos();
+            File.WriteAllText(TODO_FILE_PATH, JsonSerializer.Serialize(todos.Select(todo => todo.Id)));
 
-        var unannounced = todos.Where((todo) => !alreadyAnnouncedTodos.Contains(todo.Id)).ToList();
-
-        return unannounced;
+            return todos.Where(todo => !alreadyAnnouncedTodos.Contains(todo.Id)).ToList();
+        }
     }
 }
