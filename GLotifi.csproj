@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net9.0-windows10.0.17763.0</TargetFramework>
@@ -19,10 +18,10 @@
 
   <Target Name="CopyCustomContent" AfterTargets="AfterBuild">
     <Copy SourceFiles="GLotifi.ico" DestinationFolder="$(OutDir)" />
-    <Copy SourceFiles="GLotifi.webp" DestinationFolder="$(OutDir)" />
+    <Copy SourceFiles="GLotifi.png" DestinationFolder="$(OutDir)" />
   </Target>
   <Target Name="CopyCustomContentOnPublish" AfterTargets="Publish">
     <Copy SourceFiles="GLotifi.ico" DestinationFolder="$(PublishDir)" />
-    <Copy SourceFiles="GLotifi.webp" DestinationFolder="$(PublishDir)" />
+    <Copy SourceFiles="GLotifi.png" DestinationFolder="$(PublishDir)" />
   </Target>
 </Project>
