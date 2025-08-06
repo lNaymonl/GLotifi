@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <OutputType>WinExe</OutputType> <!-- verhindert Konsolenfenster -->
     <TargetFramework>net9.0-windows10.0.17763.0</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -20,8 +21,10 @@
     <Copy SourceFiles="GLotifi.ico" DestinationFolder="$(OutDir)" />
     <Copy SourceFiles="GLotifi.png" DestinationFolder="$(OutDir)" />
   </Target>
+
   <Target Name="CopyCustomContentOnPublish" AfterTargets="Publish">
     <Copy SourceFiles="GLotifi.ico" DestinationFolder="$(PublishDir)" />
     <Copy SourceFiles="GLotifi.png" DestinationFolder="$(PublishDir)" />
   </Target>
+
 </Project>
