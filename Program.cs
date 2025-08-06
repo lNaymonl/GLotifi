@@ -56,6 +56,7 @@ public static class Program
                 {
                     new ToastContentBuilder()
                         .AddToastActivationInfo("action=viewDetails", ToastActivationType.Foreground)
+                        .AddAppLogoOverride(new Uri(Path.Join("file:///", AppDomain.CurrentDomain.BaseDirectory, "GLotifi.webp")))
                         .AddText(unannounced[i].Target.Title)
                         .AddText(unannounced[i].Target.Description)
                         .Show();
