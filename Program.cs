@@ -14,7 +14,7 @@ namespace GLotifi
         private static string GITLAB_TOKEN = "";
         private static int EXEC_EVERY_SEC = 30;
         private static DateTime LastExec = DateTime.Now;
-        EXEC_EVERY_SEC_TSPAN = TimeSpan.FromSeconds(EXEC_EVERY_SEC);
+        private static TimeSpan EXEC_EVERY_SEC_TSPAN = TimeSpan.FromSeconds(EXEC_EVERY_SEC);
 
         [STAThread]
         static void Main()
