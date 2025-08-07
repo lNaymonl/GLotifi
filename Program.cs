@@ -3,6 +3,7 @@ using System.Text.Json;
 using DotNetEnv;
 using GLotifi.Models;
 using Microsoft.Toolkit.Uwp.Notifications;
+using Microsoft.Win32;
 
 namespace GLotifi
 {
@@ -15,6 +16,9 @@ namespace GLotifi
         private static int EXEC_EVERY_SEC = 30;
         private static DateTime LastExec = DateTime.Now;
         private static TimeSpan EXEC_EVERY_SEC_TSPAN = TimeSpan.FromSeconds(EXEC_EVERY_SEC);
+
+        private const string AUTOSTART_REG_PATH = @"Software\Microsoft\Windows\CurrentVersion\Run";
+        private const string APP_NAME = "GLotifi";
 
         [STAThread]
         static void Main()
@@ -30,6 +34,42 @@ namespace GLotifi
             };
 
             var contextMenu = new ContextMenuStrip();
+
+            var autostartItem = new ToolStripMenuItem("Autostart")
+            {
+                CheckOnClick = true,
+                Checked = IsAutostartEnabled()
+            };
+
+            autostartItem.CheckedChanged += (s, e) =>
+            {
+                if (autostartItem.Checked)
+                {
+                    EnableAutostart();
+                    new ToastContentBuilder()
+                        .AddToastActivationInfo("action=enableAutostart", ToastActivationType.Foreground)
+                        .AddAppLogoOverride(new Uri(Path.Join("file:///", AppDomain.CurrentDomain.BaseDirectory, "GLotifi.png")))
+                        .AddText("GLotifi")
+                        .AddText("Autostart got enabled!")
+                        .SetToastDuration(ToastDuration.Short)
+                        .Show();
+                }
+                else
+                {
+                    DisableAutostart();
+                    new ToastContentBuilder()
+                        .AddToastActivationInfo("action=enableAutostart", ToastActivationType.Foreground)
+                        .AddAppLogoOverride(new Uri(Path.Join("file:///", AppDomain.CurrentDomain.BaseDirectory, "GLotifi.png")))
+                        .AddText("GLotifi")
+                        .AddText("Autostart got disabled!")
+                        .SetToastDuration(ToastDuration.Short)
+                        .Show();
+                }
+            };
+
+            contextMenu.Items.Add(autostartItem);
+            contextMenu.Items.Add(new ToolStripSeparator());
+
             var exitItem = new ToolStripMenuItem("Exit GLotifi");
             exitItem.Click += (s, e) =>
             {
@@ -154,6 +194,25 @@ namespace GLotifi
             File.WriteAllText(TODO_FILE_PATH, JsonSerializer.Serialize(todos.Select(todo => todo.Id)));
 
             return todos.Where(todo => !alreadyAnnouncedTodos.Contains(todo.Id)).ToList();
+        }
+
+        private static void EnableAutostart()
+        {
+            string exePath = Application.ExecutablePath;
+            using RegistryKey key = Registry.CurrentUser.OpenSubKey(AUTOSTART_REG_PATH, true)!;
+            key.SetValue(APP_NAME, $"\"{exePath}\"");
+        }
+
+        private static void DisableAutostart()
+        {
+            using RegistryKey key = Registry.CurrentUser.OpenSubKey(AUTOSTART_REG_PATH, true)!;
+            key.DeleteValue(APP_NAME, false);
+        }
+
+        private static bool IsAutostartEnabled()
+        {
+            using RegistryKey key = Registry.CurrentUser.OpenSubKey(AUTOSTART_REG_PATH, false)!;
+            return key.GetValue(APP_NAME) != null;
         }
     }
 }
