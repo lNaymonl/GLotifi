@@ -1,8 +1,21 @@
 # GLotifi
-> [!WARNING]
-> Using the service method to start GLotifi does not work at the moment! Be aware!
 
+## Usage
+1. Download the latest version from the releases
+2. Unzip it
 
+Now you have two options:
+### Run Manually
+You can just run GLotifi by executing the .exe file in the unzipped Folder. This will start the application and create system tray icon where you can quit the app if you want.
+
+### Run on Startup (recommended)
+1. Open the `%AppData%\Microsoft\Windows\Start Menu\Programs\Startup` directory.
+2. On Windows 11, click on the `+ New` button in the top left corner of the explorer.
+3. Select `Create Shortcut` then on `Browse...`
+4. Navigate to where the Glotifi.exe is located and select it
+5. Now you can restart and GLotifi.exe will be executed when you start your Pc
+
+<!--
 ## Installation
 > [!NOTE]
 > You have to got .NET 9 installed on your PC
@@ -45,3 +58,4 @@ dotnet publish -c Release -o build
 7. Not Click `Browse` and navigate to the location where the executable for `GLotifi` is. Select it. Click `Next >`.
 8. Double check that you entered everything correctly. Then click on `Finish`.
 Now GLotifi should start everytime you login to your pc.
+--!>
