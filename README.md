@@ -1,6 +1,4 @@
 # GLotifi
-> [!WARNING]
-> Using the service method to start GLotifi does not work at the moment! Be aware!
 
 ## Usage
 1. Download the latest version from the releases
