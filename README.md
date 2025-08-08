@@ -3,17 +3,22 @@
 ## Usage
 1. Download the latest version from the releases
 2. Unzip it
+3. Create a `.env` file inside the directory where the `.exe` lives
+Example `.env` file:
+```.env
+GITLAB_URL=https://gitlab.example.com
+GITLAB_TOKEN=<my-private-auth-token>
+# TODO_FILE_PATH=/some/path/to/todo.json # Optional
+EXEC_EVERY_SEC=30
+```
+4. Start the `.exe`
 
-Now you have two options:
-### Run Manually
-You can just run GLotifi by executing the .exe file in the unzipped Folder. This will start the application and create system tray icon where you can quit the app if you want.
+Now you will find the GLotifi icon in the taskbar menu at the bottom right corner of the screen.
 
-### Run on Startup (recommended)
-1. Open the `%AppData%\Microsoft\Windows\Start Menu\Programs\Startup` directory.
-2. On Windows 11, click on the `+ New` button in the top left corner of the explorer.
-3. Select `Create Shortcut` then on `Browse...`
-4. Navigate to where the Glotifi.exe is located and select it
-5. Now you can restart and GLotifi.exe will be executed when you start your Pc
+## Enable Autostart
+If you right click on the GLotifi icon, you can select `Autostart`.
+By clicking on it, you can toggle wether you want to run GLotifi at startup or not.
+This is indicated by the checkmark.
 
 <!--
 ## Installation
