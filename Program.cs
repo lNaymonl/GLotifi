@@ -50,7 +50,7 @@ namespace GLotifi
                         .AddToastActivationInfo("action=enableAutostart", ToastActivationType.Foreground)
                         .AddAppLogoOverride(new Uri(Path.Join("file:///", AppDomain.CurrentDomain.BaseDirectory, "GLotifi.png")))
                         .AddText("GLotifi")
-                        .AddText("Autostart got enabled!")
+                        .AddText("Autostart is enabled!")
                         .SetToastDuration(ToastDuration.Short)
                         .Show();
                 }
@@ -61,7 +61,7 @@ namespace GLotifi
                         .AddToastActivationInfo("action=enableAutostart", ToastActivationType.Foreground)
                         .AddAppLogoOverride(new Uri(Path.Join("file:///", AppDomain.CurrentDomain.BaseDirectory, "GLotifi.png")))
                         .AddText("GLotifi")
-                        .AddText("Autostart got disabled!")
+                        .AddText("Autostart is disabled!")
                         .SetToastDuration(ToastDuration.Short)
                         .Show();
                 }
