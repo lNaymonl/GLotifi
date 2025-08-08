@@ -26,6 +26,28 @@ namespace GLotifi
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
+            string envPath = Path.Join(AppDomain.CurrentDomain.BaseDirectory, ".env");
+
+            if (!EnvSetup.CheckAndSetupEnv(envPath, TODO_FILE_PATH))
+            {
+            new ToastContentBuilder()
+                .AddToastActivationInfo("action=enableAutostart", ToastActivationType.Foreground)
+                .AddAppLogoOverride(new Uri(Path.Join("file:///", AppDomain.CurrentDomain.BaseDirectory, "GLotifi.png")))
+                .AddText("GLotifi")
+                .AddText("The setup got aborted. Application will exit.")
+                .SetToastDuration(ToastDuration.Short)
+                .Show();
+                return;
+            }
+
+            var envTodoFilePath = Environment.GetEnvironmentVariable("TODO_FILE_PATH");
+            if (envTodoFilePath != null) TODO_FILE_PATH = envTodoFilePath;
+
+            GITLAB_URL = Environment.GetEnvironmentVariable("GITLAB_URL")!;
+            GITLAB_TOKEN = Environment.GetEnvironmentVariable("GITLAB_TOKEN")!;
+            EXEC_EVERY_SEC = int.Parse(Environment.GetEnvironmentVariable("EXEC_EVERY_SEC")!);
+            EXEC_EVERY_SEC_TSPAN = TimeSpan.FromSeconds(EXEC_EVERY_SEC);
+
             var notifyIcon = new NotifyIcon
             {
                 Icon = new Icon(Path.Join(AppDomain.CurrentDomain.BaseDirectory, "GLotifi.ico")),
@@ -82,7 +104,7 @@ namespace GLotifi
             notifyIcon.ContextMenuStrip = contextMenu;
 
             Task.Run(() => StartBackgroundLoop());
-            Application.Run(); // Starting application
+            Application.Run();
         }
 
         static void StartBackgroundLoop()
@@ -91,9 +113,10 @@ namespace GLotifi
             {
                 Env.Load(Path.Join(AppDomain.CurrentDomain.BaseDirectory, ".env"));
 
-                var envTodoFilePath = Environment.GetEnvironmentVariable("TODO_FILE_PATH");
-                if (envTodoFilePath != null) TODO_FILE_PATH = envTodoFilePath;
-                else Directory.CreateDirectory(DEFAULT_TODO_DIRECTORY_PATH);
+                if (Environment.GetEnvironmentVariable("TODO_FILE_PATH") is string envTodoFilePath)
+                    TODO_FILE_PATH = envTodoFilePath;
+                else
+                    Directory.CreateDirectory(DEFAULT_TODO_DIRECTORY_PATH);
 
                 GITLAB_URL = GetEnvVar("GITLAB_URL");
                 GITLAB_TOKEN = GetEnvVar("GITLAB_TOKEN");
