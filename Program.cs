@@ -4,7 +4,6 @@ using DotNetEnv;
 using GLotifi.Models;
 using Microsoft.Toolkit.Uwp.Notifications;
 using Microsoft.Win32;
-using System.Threading;
 
 namespace GLotifi
 {

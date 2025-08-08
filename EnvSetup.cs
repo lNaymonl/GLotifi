@@ -1,4 +1,3 @@
-
 namespace GLotifi
 {
     internal static class EnvSetup
