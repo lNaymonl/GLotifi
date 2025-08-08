@@ -4,6 +4,7 @@ using DotNetEnv;
 using GLotifi.Models;
 using Microsoft.Toolkit.Uwp.Notifications;
 using Microsoft.Win32;
+using System.Threading;
 
 namespace GLotifi
 {
@@ -16,179 +17,195 @@ namespace GLotifi
         private static int EXEC_EVERY_SEC = 30;
         private static DateTime LastExec = DateTime.Now;
         private static TimeSpan EXEC_EVERY_SEC_TSPAN = TimeSpan.FromSeconds(EXEC_EVERY_SEC);
-
         private const string AUTOSTART_REG_PATH = @"Software\Microsoft\Windows\CurrentVersion\Run";
         private const string APP_NAME = "GLotifi";
+        private const string MUTEX_NAME = "GLotifi_SingleInstanceMutex";
 
         [STAThread]
         static void Main()
         {
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
 
-            string envPath = Path.Join(AppDomain.CurrentDomain.BaseDirectory, ".env");
-
-            if (!EnvSetup.CheckAndSetupEnv(envPath, TODO_FILE_PATH))
+            using (Mutex mutex = new(true, MUTEX_NAME, out bool createdNew))
             {
-            new ToastContentBuilder()
-                .AddToastActivationInfo("action=enableAutostart", ToastActivationType.Foreground)
-                .AddAppLogoOverride(new Uri(Path.Join("file:///", AppDomain.CurrentDomain.BaseDirectory, "GLotifi.png")))
-                .AddText("GLotifi")
-                .AddText("The setup got aborted. Application will exit.")
-                .SetToastDuration(ToastDuration.Short)
-                .Show();
-                return;
-            }
-
-            var envTodoFilePath = Environment.GetEnvironmentVariable("TODO_FILE_PATH");
-            if (envTodoFilePath != null) TODO_FILE_PATH = envTodoFilePath;
-
-            GITLAB_URL = Environment.GetEnvironmentVariable("GITLAB_URL")!;
-            GITLAB_TOKEN = Environment.GetEnvironmentVariable("GITLAB_TOKEN")!;
-            EXEC_EVERY_SEC = int.Parse(Environment.GetEnvironmentVariable("EXEC_EVERY_SEC")!);
-            EXEC_EVERY_SEC_TSPAN = TimeSpan.FromSeconds(EXEC_EVERY_SEC);
-
-            var notifyIcon = new NotifyIcon
-            {
-                Icon = new Icon(Path.Join(AppDomain.CurrentDomain.BaseDirectory, "GLotifi.ico")),
-                Visible = true,
-                Text = "GLotifi"
-            };
-
-            var contextMenu = new ContextMenuStrip();
-
-            var autostartItem = new ToolStripMenuItem("Autostart")
-            {
-                CheckOnClick = true,
-                Checked = IsAutostartEnabled()
-            };
-
-            autostartItem.CheckedChanged += (s, e) =>
-            {
-                if (autostartItem.Checked)
+                if (!createdNew)
                 {
-                    EnableAutostart();
                     new ToastContentBuilder()
-                        .AddToastActivationInfo("action=enableAutostart", ToastActivationType.Foreground)
+                        .AddToastActivationInfo("action=alreadyStarted", ToastActivationType.Foreground)
                         .AddAppLogoOverride(new Uri(Path.Join("file:///", AppDomain.CurrentDomain.BaseDirectory, "GLotifi.png")))
                         .AddText("GLotifi")
-                        .AddText("Autostart is enabled!")
+                        .AddText("GLotifi is already running.")
                         .SetToastDuration(ToastDuration.Short)
                         .Show();
+                    return;
                 }
-                else
+
+                Application.EnableVisualStyles();
+                Application.SetCompatibleTextRenderingDefault(false);
+
+                string envPath = Path.Join(AppDomain.CurrentDomain.BaseDirectory, ".env");
+
+                if (!EnvSetup.CheckAndSetupEnv(envPath, TODO_FILE_PATH))
                 {
-                    DisableAutostart();
                     new ToastContentBuilder()
-                        .AddToastActivationInfo("action=enableAutostart", ToastActivationType.Foreground)
+                        .AddToastActivationInfo("action=setupAborted", ToastActivationType.Foreground)
                         .AddAppLogoOverride(new Uri(Path.Join("file:///", AppDomain.CurrentDomain.BaseDirectory, "GLotifi.png")))
                         .AddText("GLotifi")
-                        .AddText("Autostart is disabled!")
+                        .AddText("The setup got aborted. Application will exit.")
                         .SetToastDuration(ToastDuration.Short)
                         .Show();
+                    return;
                 }
-            };
 
-            contextMenu.Items.Add(autostartItem);
-            contextMenu.Items.Add(new ToolStripSeparator());
+                var envTodoFilePath = Environment.GetEnvironmentVariable("TODO_FILE_PATH");
+                if (envTodoFilePath != null) TODO_FILE_PATH = envTodoFilePath;
 
-            var exitItem = new ToolStripMenuItem("Exit GLotifi");
-            exitItem.Click += (s, e) =>
-            {
-                notifyIcon.Visible = false;
-                Application.Exit();
-                Environment.Exit(0);
-            };
-
-            contextMenu.Items.Add(exitItem);
-            notifyIcon.ContextMenuStrip = contextMenu;
-
-            Task.Run(() => StartBackgroundLoop());
-            Application.Run();
-        }
-
-        static void StartBackgroundLoop()
-        {
-            try
-            {
-                Env.Load(Path.Join(AppDomain.CurrentDomain.BaseDirectory, ".env"));
-
-                if (Environment.GetEnvironmentVariable("TODO_FILE_PATH") is string envTodoFilePath)
-                    TODO_FILE_PATH = envTodoFilePath;
-                else
-                    Directory.CreateDirectory(DEFAULT_TODO_DIRECTORY_PATH);
-
-                GITLAB_URL = GetEnvVar("GITLAB_URL");
-                GITLAB_TOKEN = GetEnvVar("GITLAB_TOKEN");
-                EXEC_EVERY_SEC = int.Parse(GetEnvVar("EXEC_EVERY_SEC"));
+                GITLAB_URL = Environment.GetEnvironmentVariable("GITLAB_URL")!;
+                GITLAB_TOKEN = Environment.GetEnvironmentVariable("GITLAB_TOKEN")!;
+                EXEC_EVERY_SEC = int.Parse(Environment.GetEnvironmentVariable("EXEC_EVERY_SEC")!);
                 EXEC_EVERY_SEC_TSPAN = TimeSpan.FromSeconds(EXEC_EVERY_SEC);
 
-                if (!File.Exists(TODO_FILE_PATH))
+                var notifyIcon = new NotifyIcon
                 {
-                    File.Create(TODO_FILE_PATH).Close();
-                    File.WriteAllText(TODO_FILE_PATH, "[]");
-                }
+                    Icon = new Icon(Path.Join(AppDomain.CurrentDomain.BaseDirectory, "GLotifi.ico")),
+                    Visible = true,
+                    Text = "GLotifi"
+                };
 
-                new ToastContentBuilder()
-                    .AddToastActivationInfo("action=viewDetails", ToastActivationType.Foreground)
-                    .AddAppLogoOverride(new Uri(Path.Join("file:///", AppDomain.CurrentDomain.BaseDirectory, "GLotifi.png")))
-                    .AddText("GLotifi")
-                    .AddText("GLotifi got successfully started in the background!\n\nStart observing your todo list!")
-                    .SetProtocolActivation(new Uri("https://github.com/lNaymonl/GLotifi"))
-                    .SetToastDuration(ToastDuration.Short)
-                    .Show();
+                var contextMenu = new ContextMenuStrip();
 
-                while (true)
+                var autostartItem = new ToolStripMenuItem("Autostart")
                 {
-                    if (DateTime.Now - LastExec < EXEC_EVERY_SEC_TSPAN)
+                    CheckOnClick = true,
+                    Checked = IsAutostartEnabled()
+                };
+
+                autostartItem.CheckedChanged += (s, e) =>
+                {
+                    if (autostartItem.Checked)
                     {
-                        Task.Delay(1000).Wait();
-                        continue;
+                        EnableAutostart();
+                        new ToastContentBuilder()
+                            .AddToastActivationInfo("action=enableAutostart", ToastActivationType.Foreground)
+                            .AddAppLogoOverride(new Uri(Path.Join("file:///", AppDomain.CurrentDomain.BaseDirectory, "GLotifi.png")))
+                            .AddText("GLotifi")
+                            .AddText("Autostart is enabled!")
+                            .SetToastDuration(ToastDuration.Short)
+                            .Show();
+                    }
+                    else
+                    {
+                        DisableAutostart();
+                        new ToastContentBuilder()
+                            .AddToastActivationInfo("action=enableAutostart", ToastActivationType.Foreground)
+                            .AddAppLogoOverride(new Uri(Path.Join("file:///", AppDomain.CurrentDomain.BaseDirectory, "GLotifi.png")))
+                            .AddText("GLotifi")
+                            .AddText("Autostart is disabled!")
+                            .SetToastDuration(ToastDuration.Short)
+                            .Show();
+                    }
+                };
+
+                contextMenu.Items.Add(autostartItem);
+                contextMenu.Items.Add(new ToolStripSeparator());
+
+                var exitItem = new ToolStripMenuItem("Exit GLotifi");
+                exitItem.Click += (s, e) =>
+                {
+                    notifyIcon.Visible = false;
+                    Application.Exit();
+                    Environment.Exit(0);
+                };
+
+                contextMenu.Items.Add(exitItem);
+                notifyIcon.ContextMenuStrip = contextMenu;
+
+                Task.Run(() => StartBackgroundLoop());
+                Application.Run();
+            }
+
+            static void StartBackgroundLoop()
+            {
+                try
+                {
+                    Env.Load(Path.Join(AppDomain.CurrentDomain.BaseDirectory, ".env"));
+
+                    if (Environment.GetEnvironmentVariable("TODO_FILE_PATH") is string envTodoFilePath)
+                        TODO_FILE_PATH = envTodoFilePath;
+                    else
+                        Directory.CreateDirectory(DEFAULT_TODO_DIRECTORY_PATH);
+
+                    GITLAB_URL = GetEnvVar("GITLAB_URL");
+                    GITLAB_TOKEN = GetEnvVar("GITLAB_TOKEN");
+                    EXEC_EVERY_SEC = int.Parse(GetEnvVar("EXEC_EVERY_SEC"));
+                    EXEC_EVERY_SEC_TSPAN = TimeSpan.FromSeconds(EXEC_EVERY_SEC);
+
+                    if (!File.Exists(TODO_FILE_PATH))
+                    {
+                        File.Create(TODO_FILE_PATH).Close();
+                        File.WriteAllText(TODO_FILE_PATH, "[]");
                     }
 
-                    try
-                    {
-                        var task = GetUnanouncedTodos();
-                        task.Wait();
+                    new ToastContentBuilder()
+                        .AddToastActivationInfo("action=viewDetails", ToastActivationType.Foreground)
+                        .AddAppLogoOverride(new Uri(Path.Join("file:///", AppDomain.CurrentDomain.BaseDirectory, "GLotifi.png")))
+                        .AddText("GLotifi")
+                        .AddText("GLotifi got successfully started in the background!\n\nStart observing your todo list!")
+                        .SetProtocolActivation(new Uri("https://github.com/lNaymonl/GLotifi"))
+                        .SetToastDuration(ToastDuration.Short)
+                        .Show();
 
-                        var unannounced = task.Result.ToList();
-                        foreach (var todo in unannounced)
+                    while (true)
+                    {
+                        if (DateTime.Now - LastExec < EXEC_EVERY_SEC_TSPAN)
+                        {
+                            Task.Delay(1000).Wait();
+                            continue;
+                        }
+
+                        try
+                        {
+                            var task = GetUnanouncedTodos();
+                            task.Wait();
+
+                            var unannounced = task.Result.ToList();
+                            foreach (var todo in unannounced)
+                            {
+                                new ToastContentBuilder()
+                                    .AddToastActivationInfo("action=viewDetails", ToastActivationType.Foreground)
+                                    .AddAppLogoOverride(new Uri(Path.Join("file:///", AppDomain.CurrentDomain.BaseDirectory, "GLotifi.png")))
+                                    .AddText(todo.Target.Title)
+                                    .AddText(todo.Target.Description)
+                                    .SetProtocolActivation(new Uri(todo.TargetUrl))
+                                    .SetToastDuration(ToastDuration.Long)
+                                    .Show();
+                            }
+
+                            LastExec = DateTime.Now;
+                        }
+                        catch (Exception ex)
                         {
                             new ToastContentBuilder()
                                 .AddToastActivationInfo("action=viewDetails", ToastActivationType.Foreground)
                                 .AddAppLogoOverride(new Uri(Path.Join("file:///", AppDomain.CurrentDomain.BaseDirectory, "GLotifi.png")))
-                                .AddText(todo.Target.Title)
-                                .AddText(todo.Target.Description)
-                                .SetProtocolActivation(new Uri(todo.TargetUrl))
-                                .SetToastDuration(ToastDuration.Long)
+                                .AddText("An error occurred while running GLotifi: " + ex.Message)
+                                .SetToastDuration(ToastDuration.Short)
                                 .Show();
+                            Environment.Exit(1);
                         }
 
-                        LastExec = DateTime.Now;
+                        Task.Delay(1000).Wait();
                     }
-                    catch (Exception ex)
-                    {
-                        new ToastContentBuilder()
-                            .AddToastActivationInfo("action=viewDetails", ToastActivationType.Foreground)
-                            .AddAppLogoOverride(new Uri(Path.Join("file:///", AppDomain.CurrentDomain.BaseDirectory, "GLotifi.png")))
-                            .AddText("An error occurred while running GLotifi: " + ex.Message)
-                            .SetToastDuration(ToastDuration.Short)
-                            .Show();
-                        Environment.Exit(1);
-                    }
-
-                    Task.Delay(1000).Wait();
                 }
-            }
-            catch (Exception ex)
-            {
-                new ToastContentBuilder()
-                    .AddToastActivationInfo("action=viewDetails", ToastActivationType.Foreground)
-                    .AddAppLogoOverride(new Uri(Path.Join("file:///", AppDomain.CurrentDomain.BaseDirectory, "GLotifi.png")))
-                    .AddText("An error occurred while starting GLotifi: " + ex.Message)
-                    .SetToastDuration(ToastDuration.Short)
-                    .Show();
-                Environment.Exit(1);
+                catch (Exception ex)
+                {
+                    new ToastContentBuilder()
+                        .AddToastActivationInfo("action=viewDetails", ToastActivationType.Foreground)
+                        .AddAppLogoOverride(new Uri(Path.Join("file:///", AppDomain.CurrentDomain.BaseDirectory, "GLotifi.png")))
+                        .AddText("An error occurred while starting GLotifi: " + ex.Message)
+                        .SetToastDuration(ToastDuration.Short)
+                        .Show();
+                    Environment.Exit(1);
+                }
             }
         }
 
